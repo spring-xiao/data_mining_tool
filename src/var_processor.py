@@ -17,7 +17,9 @@ from src.basic_utils import(
     compute_df_mean,
     compute_df_mode,
     compute_df_skew,
-    f_var_encode
+    f_var_encode,
+    f_var_replace,
+    f_var_type_transf
    )
 
 from src.utils import select_var_by_type
@@ -103,15 +105,84 @@ class FillNullVarStr(FillNull):
                 self.fill_info[col] = 'null'
     
     
+class ValReplace(BaseEstimator,TransformerMixin):
+    
+    require_var_type = []
+    
+    def __init__(self,cols_lst,old_val_lst,new_val_lst,uid = None,y = None):
+        self.cols_lst = cols_lst
+        self.old_val_lst = old_val_lst
+        self.new_val_lst = new_val_lst
+        self.uid = uid
+        self.y = y
+        self.fit_status = False
+    
+    def fit(self,X = None,y = None):
+        
+        if len(self.cols_lst) == len(self.old_val_lst) and len(self.old_val_lst) == len(self.new_val_lst):
+            self.conf = {i[0]:[i[1],i[2]]for i in zip(self.cols_lst,self.old_val_lst,self.new_val_lst)}
+            self.fit_status = True
+        else:
+            raise ValueError('参数cols_lst、old_val_lst和new_val_lst列表长度不一致！')
+    
+    def transform(self,X,y = None):
+        
+        df = copy.deepcopy(X)
+        for col in self.cols_lst:
+            df[col] = f_var_replace(df[col],self.conf[col][0],self.conf[col][1])
+        
+        return df
+    
+    def fit_transform(self,X,y = None):
+        
+        self.fit()
+        df = self.transform(X,y)
+        return df    
+
+class TransfVarType(BaseEstimator,TransformerMixin):
+    
+    require_var_type = []
+    
+    def __init__(self,cols_lst,transf_type_lst,uid = None,y = None):
+        self.cols_lst = cols_lst
+        self.transf_type_lst = transf_type_lst
+        self.uid = uid
+        self.y = y
+        self.fit_status = False
+    
+    def fit(self,X = None,y = None):
+        
+        if len(self.cols_lst) == len(self.transf_type_lst):
+            self.conf = {i[0]:i[1] for i in zip(self.cols_lst,self.transf_type_lst)}
+            self.fit_status = True
+            
+        else:
+            raise("参数cols_lst和transf_type_lst列表长度不一致")
+        
+    def transform(self,X,y = None):
+        df = copy.deepcopy(X)
+        for col in self.cols_lst:
+            df[col] = f_var_type_transf(df[col],self.conf[col])
+            
+        return df
+        
+    def fit_transform(self,X,y = None):
+        
+        self.fit()
+        df = self.transform(X,y)
+        return df
+    
+
 class TransfVarEncode(BaseEstimator, TransformerMixin):
     
     requre_var_type = ['str','int','float','bool']
     
-    def __init__(self,cols_lst:list,dic_lst:list,default_val = None,uid = None,y = None):
+    def __init__(self,cols_lst:list,dic_lst:list,default_val = None,enc_type = 'num',uid = None,y = None):
         
         self.cols_lst = cols_lst
         self.dic_lst = dic_lst
         self.default_val = default_val
+        self.enc_type = enc_type
         self.uid = uid
         self.y = y
         self.fit_status = False
@@ -129,7 +200,7 @@ class TransfVarEncode(BaseEstimator, TransformerMixin):
         
         df = copy.deepcopy(X)
         for col in self.cols_lst:
-            df[col] = f_var_encode(df[col],self.conf[col],self.default_val)
+            df[col] = f_var_encode(df[col],self.conf[col],self.default_val,self.enc_type)
             
         return df    
         
@@ -138,6 +209,7 @@ class TransfVarEncode(BaseEstimator, TransformerMixin):
         self.fit(self,X)
         df = self.transform(X)
         return df
+
 
     
 class LabelEnc(BaseEstimator, TransformerMixin):

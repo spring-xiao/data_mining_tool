@@ -235,25 +235,45 @@ def compute_var_corr(x,y,method = 'pearson'):
     
     return corr
 
-def compute_df_corr(X,y,method = 'pearson'):
-    
-    corr_info = {}
-    for col in X.columns:
-        corr_info[col] = compute_var_corr(X[col],y,method = method)
-        
-    return corr_info
 
-def compute_var_corr(x,y,method = 'pearson'):
+def f_encode(val,dic,default_val = None,enc_type = 'num'):
     
-    corr = y.corr(x,method = method)
+    if enc_type == 'num':
+        res = dic.get(val,default_val)
+    elif enc_type == 'str':
+        res = dic.get(val,default_val)
+        if res is not None:
+            res = 'bin'+str(res)
+    else:
+        raise ValueError("enc_type参数要求为:'num'或'str'")
     
-    return corr
+    return  res
 
-def f_encode(val,dic,default_val = None):
+def f_var_encode(X,dic,default_var = None,enc_type = 'num'):
     
-    return dic.get(val,default_val)
+    res = X.apply(lambda x:f_encode(x,dic,default_var,enc_type))
+    return res
 
-def f_var_encode(X,dic,default_var = None):
+
+def f_var_replace(X,old_val,new_val):
     
-    res = X.apply(lambda x:dic.get(x,default_var))
+    res = X.apply(lambda x:new_val if x == old_val else x)
+    return res
+
+
+def f_var_type_transf(X,transf_type):
+    
+    if transf_type in ['str','int','float','bool']:
+        if transf_type ==  'str':
+            res = X.apply(lambda x: np.nan if pd.isnull(x) else str(x))
+        elif transf_type ==  'int':
+            res = X.apply(lambda x: np.nan if pd.isnull(x) else int(x))
+        elif transf_type ==  'float':
+            res = X.apply(lambda x: np.nan if pd.isnull(x) else float(x)) 
+        elif transf_type ==  'bool':
+            res = X.apply(lambda x: np.nan if pd.isnull(x) else bool(x)) 
+            
+    else:
+        raise ValueError("参数transf_type必须在'str','int','float','bool'中取值")
+    
     return res
