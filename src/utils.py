@@ -1,4 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jan 22 16:11:34 2020
+
+@author: xiaox
+"""
+
+
 from src.basic_utils import get_vars_type
+from sklearn.metrics import roc_auc_score,roc_curve
 
 
 def select_var_by_type(df,uid = None,y = None,var_type = ['int','float']):
@@ -26,3 +35,10 @@ def select_var_by_type(df,uid = None,y = None,var_type = ['int','float']):
     cols_select = list(set(cols_select) - set(uid + y))
     
     return cols_select
+
+
+def get_ks(y_true,y_score):
+    
+    fpr, tpr, thresholds = roc_curve(y_true = y_true, y_score = y_score)
+    ks = max(abs(tpr - fpr))
+    return ks

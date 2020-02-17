@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jan 22 16:11:34 2019
+
+@author: xiaox
+"""
+
+
 from sklearn.base import BaseEstimator,TransformerMixin
 from sklearn.preprocessing import (
     LabelEncoder,
@@ -105,7 +113,7 @@ class FillNullVarStr(FillNull):
                 self.fill_info[col] = 'null'
     
     
-class ValReplace(BaseEstimator,TransformerMixin):
+class VarReplace(BaseEstimator,TransformerMixin):
     
     require_var_type = []
     
