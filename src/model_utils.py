@@ -5,7 +5,6 @@ Created on Wed Jan 22 16:11:34 2019
 @author: xiaox
 """
 
-
 import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator,TransformerMixin
@@ -97,6 +96,8 @@ class AvgWeightRegressor(BaseEstimator,TransformerMixin):
             self.weights = root_mean_error/np.sum(root_mean_error)
         else:
             pass
+        
+        self.fit_status = True
             
     def predict(self,X):
         
@@ -126,9 +127,8 @@ class StackModel(BaseEstimator,TransformerMixin):
                 pred_value[val_idx,i] = model_tmp.predict(X.iloc[val_idx]) 
                 
         self.meta_model.fit(X = pred_value,y = y)
-        self.fit_status = False
+        self.fit_status = True
         
-    
     def predict(self,X):
         
         mid_pred_value = []

@@ -18,7 +18,8 @@ from src.basic_utils import(
     compute_df_mean,
     compute_df_mode,
     computer_df_importance_xgb_regressor,
-    compute_df_corr
+    compute_df_corr,
+    f_df_iv
    )
 from src.utils import select_var_by_type
 
@@ -151,7 +152,7 @@ class VarFilterCorr(VarFilter):
 
     def fit(self,X,y = None):
         
-        if len(self.cols_lst) ==0:
+        if len(self.cols_lst) == 0:
             self.cols_lst = select_var_by_type(X,uid = self.uid,y = self.y,var_type = self.require_var_type)
         else:
             self.cols_lst = [col for col in self.cols_lst if col in X.columns.tolist()]        
@@ -164,3 +165,27 @@ class VarFilterCorr(VarFilter):
         self.fit_status = True 
         
         
+class VarFilterIv(VarFilter):
+    
+    require_var_type = ['str']
+    
+    def __init__(self,cols_lst:list = [],uid = None,y = None,iv_thres = 0.02):
+        super().__init__(cols_lst,uid,y)
+        self.iv_thres = iv_thres
+        
+        
+    def fit(self,X,y):
+        
+        if len(self.cols_lst) == 0:
+            self.cols_lst = select_var_by_type(X,uid = self.uid,y = self.y,var_type = self.require_var_type)
+            
+        else:
+            self.cols_lst = [col for col in self.cols_lst if col in X.columns.to_list()]
+    
+        self.iv_info = f_df_iv(X[self.cols_lst],y)
+        self.var_filter = {k:v for k,v in self.iv_info.items() if v < self.iv_thres}
+        self.fit_status = True       
+        
+        
+        
+               

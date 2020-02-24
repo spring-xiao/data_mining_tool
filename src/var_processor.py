@@ -5,7 +5,6 @@ Created on Wed Jan 22 16:11:34 2019
 @author: xiaox
 """
 
-
 from sklearn.base import BaseEstimator,TransformerMixin
 from sklearn.preprocessing import (
     LabelEncoder,
@@ -25,10 +24,20 @@ from src.basic_utils import(
     compute_df_mean,
     compute_df_mode,
     compute_df_skew,
+    f_df_woe,
     f_var_encode,
     f_var_replace,
     f_var_type_transf
    )
+
+from src.var_bin_utils import (
+        f_df_str_chisq_group,
+        f_df_num_chisq_group,
+        f_df_num_dtree_group,
+        f_df_num_quantile_group,
+        f_df_num_equal_width_group,
+        f_binning_num
+        )
 
 from src.utils import select_var_by_type
 
@@ -165,7 +174,7 @@ class TransfVarType(BaseEstimator,TransformerMixin):
             self.fit_status = True
             
         else:
-            raise("参数cols_lst和transf_type_lst列表长度不一致")
+            raise ValueError("参数cols_lst和transf_type_lst列表长度不一致")
         
     def transform(self,X,y = None):
         df = copy.deepcopy(X)
@@ -421,4 +430,170 @@ class MinMaxScalerVarNum(BaseEstimator,TransformerMixin):
         df = self.transform(X)
         return df    
     
+
+class BinVarStrChisq(BaseEstimator,TransformerMixin):
+    
+    require_var_type = ['str']
+    
+    def __init__(self,cols_lst:list = [],uid = None,y = None,p_value = 0.05,
+                 pct = 0.05,max_groups = 10,num_least = 30):
+        
+        self.cols_lst = cols_lst
+        self.uid = uid
+        self.y = y
+        self.p_value = p_value
+        self.pct = pct
+        self.max_groups = max_groups
+        self.num_least = num_least
+        self.fit_status = False
+        
+    
+    def fit(self,X,y = None):
+        
+        if len(self.cols_lst) == 0:
+            self.cols_lst = select_var_by_type(X,uid = self.uid,y = self.y,var_type = self.require_var_type)
+        else:
+            self.cols_lst = [col for  col in self.cols_lst if col in X.columns.tolist()]
+    
+        
+        self.bin_info = f_df_str_chisq_group(X = X[self.cols_lst],
+                                             y = y,
+                                             p_value = self.p_value,
+                                             pct = self.pct,
+                                             max_groups = self.max_groups,
+                                             num_least = self.num_least
+                                             )
+        
+        self.fit_status = True
+    
+    
+    def transform(self,X):
+        
+        df = copy.deepcopy(X)
+        for col in self.cols_lst:
+            
+            default_val = list(self.bin_info[col].values())[0]
+            df[col] = df[col].apply(lambda x: 'null' if pd.isnull(x) else self.bin_info[col].get(x,default_val))
+        
+        return df
+    
+    
+    def fit_transform(self,X,y = None):
+        
+        self.fit(X,y)
+        df = self.transform(X)
+        
+        return df
+    
+
+class BinVarNum(BaseEstimator,TransformerMixin):
+    
+    require_var_type = ['int','float']
+    bin_fun = {'dtree':f_df_num_dtree_group,
+               'chisq':f_df_num_chisq_group,
+               'quantile':f_df_num_quantile_group,
+               'equal_width':f_df_num_equal_width_group}
+    
+    def __init__(self,cols_lst:list = [],uid = None,y = None,bin_type = 'dtree',
+                 p_value = 0.05,pct = 0.05,max_groups = 10,num_least = 20,
+                 criterion = 'gini',min_samples_leaf = 0.05,max_leaf_nodes = 10, min_impurity_decrease = 1e-5,
+                 q = 5):
+        
+        self.cols_lst = cols_lst
+        self.uid = uid
+        self.y = y
+        self.bin_type = bin_type
+        self.p_value = p_value
+        self.pct = pct
+        self.max_groups = max_groups
+        self.num_least = num_least
+        self.criterion = criterion
+        self.min_samples_leaf = min_samples_leaf
+        self.max_leaf_nodes = max_leaf_nodes
+        self.min_impurity_decrease = min_impurity_decrease
+        self.q = q
+        self.cut_info = {}
+        self.fit_status = False 
+        
+    def fit(self,X,y = None):
+        
+        if len(self.cols_lst) == 0:
+            self.cols_lst = [col for col in select_var_by_type(X,uid = self.uid,y = self.y,var_type = ['int','float'])]
+        
+        else:
+            self.cols_lst = [col for col in self.cols_lst if col in X.columns.tolist()]
+            
+
+        if self.bin_type == 'dtree':
+            self.cut_info = self.bin_fun[self.bin_type](X[self.cols_lst],y = y,
+                             criterion = self.criterion,min_samples_leaf = self.min_samples_leaf,
+                             max_leaf_nodes = self.max_leaf_nodes, min_impurity_decrease = self.min_impurity_decrease)
+                        
+        elif self.bin_type == 'chisq':
+            self.cut_info = self.bin_fun[self.bin_type](X[self.cols_lst],y = y,
+                             p_value = self.p_value,pct = self.pct,max_groups = self.max_groups,num_least = self.num_least)
+        
+        
+        elif self.bin_type in ['quantile','equal_width']:
+            self.cut_info = self.bin_fun[self.bin_type](X[self.cols_lst],self.q)
+            
+        
+        else:
+            raise ValueError('bin_type参数只支持dtree、chisq、quantile和equal_width值')
+        self.fit_status = True
+    
+    
+    def transform(self,X):
+        
+        df = copy.deepcopy(X)
+        for col in self.cols_lst:
+            if len(self.cut_info[col]) != 0:
+                df[col] = f_binning_num(df[col],self.cut_info[col])
+        
+        return df
+                 
+                
+    def fit_transform(self,X,y = None):
+        
+        self.fit(X,y)
+        df = self.transform(X)
+        return df
+
+
+class WoeVarStr(BaseEstimator,TransformerMixin):
+    
+    require_var_type = ['str']
+    
+    def __init__(self,cols_lst:list = [],uid = None,y = None):
+        self.cols_lst = cols_lst
+        self.uid = uid
+        self.y = y
+        self.fit_status = False
+    
+    def fit(self,X,y):
+        
+        if len(self.cols_lst) == 0:
+            self.cols_lst = select_var_by_type(X,uid = self.uid,y = self.y,var_type = self.require_var_type)
+        
+        else:
+            self.cols_lst = [col for col in self.cols_lst if col in X.columns]
+        
+        self.woe_info = f_df_woe(X[self.cols_lst],y)
+        
+        self.fit_status = True
+        
+    def transform(self,X):
+        
+        df = copy.deepcopy(X)
+        for col in self.cols_lst:
+            df[col] = df[col].apply(lambda x:self.woe_info[col].get(x,np.nan))
+            
+        return df
+    
+    def fit_transform(self,X,y):
+        
+        self.fit(X,y)
+        df = self.transform(X)
+        return df
+
 

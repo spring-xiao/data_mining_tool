@@ -243,6 +243,31 @@ def compute_var_corr(x,y,method = 'pearson'):
     
     return corr
 
+def f_var_woe(x,y):
+    
+    
+    x.reset_index(drop = True,inplace = True)
+    y.reset_index(drop = True,inplace = True)
+    x = x.astype(str)
+    df_tmp = pd.crosstab(x,y)
+    df_tmp.rename(columns = {0:'good_cnt',1:'bad_cnt','0':'good_cnt','1':'bad_cnt'},inplace = True)
+    df_tmp['good_pct'] = df_tmp['good_cnt']/df_tmp['good_cnt'].sum()
+    df_tmp['bad_pct'] = df_tmp['bad_cnt']/df_tmp['bad_cnt'].sum()
+    df_tmp['woe'] = round(np.log(df_tmp['bad_pct']/(df_tmp['good_pct'] + 1e-8)),6)
+
+    woe = df_tmp['woe'].to_dict()
+    
+    return woe
+
+
+def f_df_woe(X,y):
+    
+    woe_info = {}
+    for col in X.columns:
+        woe_info[col] = f_var_woe(X[col],y)
+        
+    return woe_info
+
 
 def f_encode(val,dic,default_val = None,enc_type = 'num'):
     
@@ -256,6 +281,33 @@ def f_encode(val,dic,default_val = None,enc_type = 'num'):
         raise ValueError("enc_type参数要求为:'num'或'str'")
     
     return  res
+
+def f_var_iv(x,y):
+    
+    
+    x.reset_index(drop = True,inplace = True)
+    y.reset_index(drop = True,inplace = True)
+    x = x.astype(str)
+    df_tmp = pd.crosstab(x,y)
+    df_tmp.rename(columns = {0:'good_cnt',1:'bad_cnt','0':'good_cnt','1':'bad_cnt'},inplace = True)
+    df_tmp['good_pct'] = df_tmp['good_cnt']/df_tmp['good_cnt'].sum()
+    df_tmp['bad_pct'] = df_tmp['bad_cnt']/df_tmp['bad_cnt'].sum()
+    
+    df_tmp['woe'] = (df_tmp['bad_pct']/df_tmp['good_pct']).replace(np.inf,0).apply(lambda x:np.log(x) if x !=0 else 0)
+    df_tmp['miv'] = round((df_tmp['bad_pct'] - df_tmp['good_pct']) * df_tmp['woe'],6)
+
+    iv = df_tmp['miv'].sum()
+    
+    return iv
+
+def f_df_iv(X,y):
+    
+    iv_info = {}
+    for col in X.columns:
+        iv_info[col] = f_var_iv(X[col],y)
+        
+    return iv_info
+
 
 def f_var_encode(X,dic,default_var = None,enc_type = 'num'):
     
