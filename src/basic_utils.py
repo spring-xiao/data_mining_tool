@@ -113,6 +113,34 @@ def get_vars_type(df):
         
     return f_types
 
+
+def select_var_by_type(df,uid = None,y = None,var_type = ['int','float']):
+    
+    if uid is None:
+        uid = []
+    elif not isinstance(uid,list):
+        uid = [uid]
+    
+    if y is None:
+        y = []
+    elif not isinstance(y,list):
+        y = [y]
+    
+    if not isinstance(var_type,list):
+        var_type = [var_type]
+    
+    f_types = get_vars_type(df)
+    
+    if var_type[0] == 'all':
+        cols_select = list(f_types.keys())
+    else:
+        cols_select = [k for k,v in f_types.items() if v in var_type]
+    
+    cols_select = list(set(cols_select) - set(uid + y))
+    
+    return cols_select
+
+
 def compute_df_null_rate(df):
     
     cols = df.columns.tolist()
@@ -337,3 +365,17 @@ def f_var_type_transf(X,transf_type):
         raise ValueError("参数transf_type必须在'str','int','float','bool'中取值")
     
     return res
+
+
+
+#******************************************************************************
+import inspect
+
+basic_utils_fun = dict((key,val) for key,val in locals().items() \
+                       if inspect.isfunction(val) and val.__module__ in( '__main__','src.basic_utils'))
+
+
+
+
+
+

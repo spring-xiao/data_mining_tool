@@ -12,11 +12,12 @@ import pandas as pd
 
 class ProbaToScore(BaseEstimator,TransformerMixin):
     
-    def __init__(self,odds_val = 1/10,score_val = 500, pdo = 50,
+    def __init__(self,odds_val = 1/10,score_val = 500, pdo = 50,transf_reverse = False,
                  score_scaled_min = 300,score_scaled_max = 850,score_scaled = True):
         self.odds_val = odds_val
         self.score_val = score_val
         self.pdo = pdo
+        self.transf_reverse = transf_reverse
         self.score_scaled_min = score_scaled_min
         self.score_scaled_max = score_scaled_max
         self.score_scaled = score_scaled
@@ -24,13 +25,19 @@ class ProbaToScore(BaseEstimator,TransformerMixin):
         
     def fit(self):
         self.B = self.pdo/log(2)
-        self.A = self.score_val + self.B*log(self.odds_val)
+        if self.transf_reverse:
+            self.A = self.score_val - self.B*log(self.odds_val)
+        else:
+            self.A = self.score_val + self.B*log(self.odds_val)
         self.fit_status = True
     
     def transform(self,X):
         
         X_odds = pd.Series(X).apply(lambda x: 0.9999/(1-0.9999) if x >=1 else x/(1-x) )
-        score = X_odds.apply(lambda x:round(self.A - self.B*log(x)))
+        if self.transf_reverse:
+            score = X_odds.apply(lambda x:round(self.A + self.B*log(x)))
+        else:
+            score = X_odds.apply(lambda x:round(self.A - self.B*log(x)))
         
         self.sample_score_min = min(score)
         self.sample_score_max = max(score)

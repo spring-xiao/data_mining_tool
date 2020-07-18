@@ -5,7 +5,6 @@ Created on Wed Jan 22 16:11:34 2019
 @author: xiaox
 """
 
-
 from sklearn.base import BaseEstimator,TransformerMixin
 import pandas as pd
 import numpy as np
@@ -21,7 +20,7 @@ from src.basic_utils import(
     compute_df_corr,
     f_df_iv
    )
-from src.utils import select_var_by_type
+from src.basic_utils import select_var_by_type
 
 class VarFilter(BaseEstimator,TransformerMixin):
     

@@ -27,7 +27,8 @@ from src.basic_utils import(
     f_df_woe,
     f_var_encode,
     f_var_replace,
-    f_var_type_transf
+    f_var_type_transf,
+    select_var_by_type
    )
 
 from src.var_bin_utils import (
@@ -38,8 +39,6 @@ from src.var_bin_utils import (
         f_df_num_equal_width_group,
         f_binning_num
         )
-
-from src.utils import select_var_by_type
 
 
 class FillNull(BaseEstimator,TransformerMixin):

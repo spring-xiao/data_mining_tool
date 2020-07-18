@@ -19,7 +19,6 @@ from sklearn.metrics import roc_auc_score
 from src.utils import get_ks
 from src.stat_utils import get_df_iv_info
 
-
 from src.var_processor import (
         FillNullVarNum,
         FillNullVarStr,
@@ -130,7 +129,7 @@ print('ks_test',round(ks_test,3))
 #**************************************************
 #***评分制定
 
-score_pro = ProbaToScore()
+score_pro = ProbaToScore(transf_reverse = False)
 score_pro.fit()
 score_train = score_pro.transform(X = y_pred_train)
 score_test = score_pro.transform(X = y_pred_test)
@@ -145,8 +144,10 @@ score_test_bin= score_bin.transform(X = score_test_df)
 score_train_info = get_df_iv_info(X = score_train_bin,y = y_train)
 score_test_info = get_df_iv_info(X = score_test_bin,y = y_test)
 
-score_train_info.to_csv('result\score_train_info.csv',index = False)
-score_train_info.to_csv('result\score_test_info.csv',index = False)
+
+
+#score_train_info.to_csv('result\score_train_info.csv',index = False)
+#score_train_info.to_csv('result\score_test_info.csv',index = False)
 
 
 

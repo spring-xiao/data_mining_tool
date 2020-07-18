@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jan 22 16:11:34 2019
-
-@author: xiaox
-"""
-
-
 from sklearn.base import BaseEstimator,TransformerMixin
 from src.utils import select_var_by_type
 import copy
